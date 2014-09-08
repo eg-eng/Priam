@@ -20,6 +20,7 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
+import com.netflix.priam.aws.IAMCredential;
 import com.netflix.priam.aws.S3FileSystem;
 import com.netflix.priam.backup.IBackupFileSystem;
 
@@ -36,6 +37,7 @@ public class PriamGuiceModule extends AbstractModule
         bind(IBackupFileSystem.class).annotatedWith(Names.named("backup")).to(S3FileSystem.class);
         bind(IBackupFileSystem.class).annotatedWith(Names.named("incr_restore")).to(S3FileSystem.class);
         bind(IBackupFileSystem.class).annotatedWith(Names.named("backup_status")).to(S3FileSystem.class);
-        bind(ICredential.class).to(ClearCredential.class);
+        // bind(ICredential.class).to(ClearCredential.class);
+        bind(ICredential.class).to(IAMCredential.class);
     }
 }
