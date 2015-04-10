@@ -552,6 +552,11 @@ public class FakeConfiguration implements IConfiguration
 	}
 
 	@Override
+	public String getRpcMaxThreads() {
+		return "2096";
+	}
+
+	@Override
 	public int getIndexInterval() {
 		return 0;
 	}

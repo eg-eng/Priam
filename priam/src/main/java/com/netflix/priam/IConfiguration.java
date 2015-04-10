@@ -413,6 +413,7 @@ public interface IConfiguration
     public int getConcurrentCompactorsCnt();
     
     public String getRpcServerType();
+    public String getRpcMaxThreads();
     public int getIndexInterval();
     
     public String getExtraConfigParams();
