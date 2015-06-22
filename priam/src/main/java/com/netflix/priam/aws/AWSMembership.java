@@ -29,6 +29,7 @@ import com.amazonaws.services.autoscaling.AmazonAutoScalingClient;
 import com.amazonaws.services.autoscaling.model.AutoScalingGroup;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsRequest;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsResult;
+import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.autoscaling.model.Instance;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -123,6 +124,33 @@ public class AWSMembership implements IMembership
         return config.getRacs().size();
     }
 
+
+
+    /**
+     * Get the groupId of the SG.
+     */
+    public String getSgId(String groupName)
+    {
+        AmazonEC2 client = null;
+        try
+        {
+            client = getEc2Client();        
+            Filter sgFilter = new Filter().withName("group-name").withValues(config.getACLGroupName());
+            DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withFilters(sgFilter);
+            DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
+            String groupId = "";
+            for (SecurityGroup group : result.getSecurityGroups())
+                return group.getGroupId();
+        }
+        finally
+        {
+            if (client != null)
+                client.shutdown();
+        }
+        return null;
+    }
+
+
     /**
      * Adds a iplist to the SG.
      */
@@ -134,7 +162,9 @@ public class AWSMembership implements IMembership
             client = getEc2Client();
             List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
             ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
-            client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+            //client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+            String groupId = getSgId(config.getACLGroupName());
+            client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest().withGroupId(groupId).withIpPermissions(ipPermissions));
             logger.info("Done adding ACL to: " + StringUtils.join(listIPs, ","));
         }
         finally
@@ -155,7 +185,9 @@ public class AWSMembership implements IMembership
             client = getEc2Client();
             List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
             ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
-            client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+            //client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+            String groupId = getSgId(config.getACLGroupName());
+            client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest().withGroupId(groupId).withIpPermissions(ipPermissions));            
             logger.info("Done removing from ACL: " + StringUtils.join(listIPs, ","));
         }
         finally
@@ -175,7 +207,9 @@ public class AWSMembership implements IMembership
         {
             client = getEc2Client();
             List<String> ipPermissions = new ArrayList<String>();
-            DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(config.getACLGroupName()));
+            Filter sgFilter = new Filter().withName("group-name").withValues(config.getACLGroupName());
+            // DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(config.getACLGroupName()));
+            DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withFilters(sgFilter);
             DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
             for (SecurityGroup group : result.getSecurityGroups())
                 for (IpPermission perm : group.getIpPermissions())
